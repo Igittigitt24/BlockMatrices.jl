@@ -12,12 +12,12 @@ struct ZeroMatrix{T} <: AbstractMatrix{T}
 end
 Base.size(A::ZeroMatrix) = (A.m, A.n)
 
-function Base.A_mul_B!{T}(Y::AbstractVector{T}, A::ZeroMatrix{T}, B::AbstractVector{T})
+@inbounds function Base.A_mul_B!{T}(Y::AbstractVector{T}, A::ZeroMatrix{T}, B::AbstractVector{T})
     @assert size(A,2) == size(B,1)
     @assert size(A,1) == size(Y,1)
     fill!(Y, zero(T))
 end
-function Base.At_mul_B!{T}(Y::AbstractVector{T}, A::ZeroMatrix{T}, B::AbstractVector{T})
+@inbounds function Base.At_mul_B!{T}(Y::AbstractVector{T}, A::ZeroMatrix{T}, B::AbstractVector{T})
     @assert size(A,1) == size(B,1)
     @assert size(A,2) == size(Y,1)
     fill!(Y, zero(T))
@@ -31,7 +31,7 @@ struct IdentityMatrix{T} <: AbstractMatrix{T}
 end
 Base.size(A::IdentityMatrix) = (A.m, A.m)
 
-function Base.A_mul_B!{T}(Y::AbstractVector{T}, A::IdentityMatrix{T}, B::AbstractVector{T})
+@inbounds function Base.A_mul_B!{T}(Y::AbstractVector{T}, A::IdentityMatrix{T}, B::AbstractVector{T})
     @assert size(A,2) == size(B,1)
     @assert size(A,1) == size(Y,1)
     copy!(Y, B)
@@ -54,7 +54,7 @@ struct BlockMatrix{T, MT<:NTuple{<:Any,NTuple{<:Any,AbstractArray}}} <: Abstract
     mranges::Array{UnitRange{Int},1}
     nranges::Array{UnitRange{Int},1}
     tmp::Array{T,1}         #Size: max(m,n)
-    function BlockMatrix{T,MT}(M::MT) where {T, mi, ni, MT <: NTuple{mi,NTuple{ni,AbstractArray{T}}}}
+    function BlockMatrix{T,MT}(M::MT) where {T, mi, ni, MT <: NTuple{mi,NTuple{ni,AbstractMatrix{T}}}}
         hs = Array{Int,1}(mi)
         ws = Array{Int,1}(ni)
         for i = 1:mi                #All rows have equal hight
@@ -91,7 +91,7 @@ end
 
 import Base.Cartesian: @nexprs
 
-@generated function Base.A_mul_B!(Y::AbstractVector{T}, M::BlockMatrix{T, MT}, B::AbstractVector{T}) where {T, mi, ni, MT <: NTuple{mi,NTuple{ni,AbstractArray{T}}}}
+@inbounds @generated function Base.A_mul_B!(Y::AbstractVector{T}, M::BlockMatrix{T, MT}, B::AbstractVector{T}) where {T, mi, ni, MT <: NTuple{mi,NTuple{ni,AbstractArray{T}}}}
     ni1 = ni-1
     quote
         @assert size(B,2) == size(Y,2) == 1
@@ -108,7 +108,7 @@ import Base.Cartesian: @nexprs
     end
 end
 
-@generated function Base.At_mul_B!(Y::AbstractVector{T}, M::BlockMatrix{T, MT}, B::AbstractVector{T}) where {T, mi, ni, MT <: NTuple{mi,NTuple{ni,AbstractArray{T}}}}
+@inbounds @generated function Base.At_mul_B!(Y::AbstractVector{T}, M::BlockMatrix{T, MT}, B::AbstractVector{T}) where {T, mi, ni, MT <: NTuple{mi,NTuple{ni,AbstractArray{T}}}}
     mi1 = mi-1
     quote
         @assert size(B,2) == size(Y,2) == 1
@@ -126,7 +126,7 @@ end
 end
 
 
-@generated function Base.Ac_mul_B!(Y::AbstractVector{T}, M::BlockMatrix{T, MT}, B::AbstractVector{T}) where {T, mi, ni, MT <: NTuple{mi,NTuple{ni,AbstractArray{T}}}}
+@inbounds @generated function Base.Ac_mul_B!(Y::AbstractVector{T}, M::BlockMatrix{T, MT}, B::AbstractVector{T}) where {T, mi, ni, MT <: NTuple{mi,NTuple{ni,AbstractArray{T}}}}
     mi1 = mi-1
     quote
         @assert size(B,2) == size(Y,2) == 1
